@@ -1,9 +1,11 @@
+import re
 import sys
 
 import requests
 from bs4 import BeautifulSoup
 from colorama import Fore, Style
 
+regex = re.compile(r"\+?\d?([0-9]{3})-?([0-9]{3})-?([0-9]{4})", re.UNICODE)
 
 def banner(number: int) -> None:
 	print(f"""
@@ -19,6 +21,7 @@ def banner(number: int) -> None:
 	{Fore.RESET}""")
 
 def caller_id(number: int) -> None:
+	number = int('1' + ''.join(regex.match(str(number)).groups()))
 	resp = requests.post("https://api.calleridtest.com/freebie", json={"number": number}).json()
 	if resp.get("status") == "success":
 		provider = resp.get("data").get("data").get("lrn").get("company")
@@ -46,6 +49,7 @@ def true_people_search(number: int) -> None:
 	[print(f"{Fore.LIGHTBLUE_EX + Style.BRIGHT}[ Name ] --> {Fore.LIGHTRED_EX}{name}{Fore.RESET}") for name in names]
 
 def thats_them_search(number: int) -> None:
+	number = str('-'.join(regex.match(str(number)).groups()))
 	resp = requests.get("https://thatsthem.com/phone/{0}".format(number)).text
 	soup = BeautifulSoup(resp, 'html.parser')
 	try:
@@ -66,4 +70,10 @@ def main() -> None:
 	thats_them_search(sys.argv[1])
 
 if __name__ == "__main__":
+	if len(sys.argv) != 2:
+		print(f"{Fore.RED}You must only specify a phone number !{Fore.RESET}")
+		sys.exit(1)
+	if not bool(regex.match(sys.argv[1])):
+		print(f"{Fore.RED}That is not a valid phone number{Fore.RESET}")
+		sys.exit(1)
 	main()
