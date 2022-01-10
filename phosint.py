@@ -20,7 +20,7 @@ def banner(number: int) -> None:
 
 	{Fore.RESET}""")
 
-def caller_id(number: int) -> None:
+def caller_id(number: str) -> None:
 	number = int('1' + ''.join(regex.match(str(number)).groups()))
 	resp = requests.post("https://api.calleridtest.com/freebie", json={"number": number}).json()
 	if resp.get("status") == "success":
@@ -64,7 +64,7 @@ def thats_them_search(number: int) -> None:
 	[print(f"{Fore.LIGHTBLUE_EX + Style.BRIGHT}[ Name ] --> {Fore.LIGHTRED_EX}{name}{Fore.RESET}") for name in names]
 
 def main() -> None:
-	banner(sys.argv[1])
+	banner("({0}) {1}-{2}".format(*regex.match(str(sys.argv[1])).groups()))
 	caller_id(sys.argv[1])
 	true_people_search(sys.argv[1])
 	thats_them_search(sys.argv[1])
