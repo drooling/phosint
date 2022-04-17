@@ -3,7 +3,7 @@
 ## Install
 
 ```
-git clone https://github.com/9sv/phosint
+git clone https://github.com/drooling/phosint
 cd phosint
 pip install -r requirements.txt
 ```
