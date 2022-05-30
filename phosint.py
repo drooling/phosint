@@ -1,6 +1,7 @@
 import re
 import sys
 
+import cloudscraper
 import requests
 from bs4 import BeautifulSoup
 from colorama import Fore, Style
@@ -21,6 +22,8 @@ def banner(number: int) -> None:
 	{Fore.RESET}""")
 
 def caller_id(number: str) -> None:
+	if len(number) >= 11:
+		number = str(number[len(number) - 10:])
 	number = int('1' + ''.join(regex.match(str(number)).groups()))
 	resp = requests.post("https://api.calleridtest.com/freebie", json={"number": number}).json()
 	if resp.get("status") == "success":
@@ -30,44 +33,52 @@ def caller_id(number: str) -> None:
 		name = resp.get("data").get("data").get("cnam").get("name")
 	else:
 		return print(f"{Fore.YELLOW + Style.BRIGHT}[ Error ] --> Could not fetch caller info{Fore.RESET}")
-	print(f"{Fore.LIGHTBLUE_EX + Style.BRIGHT}[ Name ] --> {Fore.LIGHTRED_EX}{name}{Fore.RESET}")
+	print(f"{Fore.LIGHTBLUE_EX + Style.BRIGHT}[ Caller ID ] --> {Fore.LIGHTRED_EX}{name}{Fore.RESET}")
 	print(f"{Fore.LIGHTBLUE_EX + Style.BRIGHT}[ Location ] --> {Fore.LIGHTRED_EX}{city}, {state}{Fore.RESET}")
 	print(f"{Fore.LIGHTBLUE_EX + Style.BRIGHT}[ Provider ] --> {Fore.LIGHTRED_EX}{provider}{Fore.RESET}")
 
-def true_people_search(number: int) -> None:
-	resp = requests.get("https://www.truepeoplesearch.com/resultphone?phoneno={0}".format(number)).text
+def zaba_search(number: int) -> None:
+	scraper = cloudscraper.create_scraper()
+	if len(number) >= 11:
+		number = str(number[len(number) - 10:])
+	resp = scraper.get("https://www.zabasearch.com/phone/{0}".format(number)).text
 	soup = BeautifulSoup(resp, 'html.parser')
 	try:
-		record_count = soup.find("div", attrs={'class': "row visible-left-side-visible record-count pl-1"}).find("div", attrs={'class': "col"}).text
-		records = soup.find("div", attrs={'class': "content-center"}).find_all("div", attrs={'class': "card card-body shadow-form card-summary pt-3"})
-		names = []
+		record_count = soup.find("div", attrs={'class': "resultsbox"}).find("h1").text
+		records = soup.find("div", attrs={'class': "sub-container"}).find_all("section", attrs={'class': "person people-results resultsbox"})
+		print(f"\n{Fore.BLUE + Style.BRIGHT}[ Zaba Search ] {record_count}{Fore.RESET}")
 		for record in records:
-			names.append(record.find("div", attrs={'class': "col-md-8"}).find("div", attrs={'class': "h4"}).text)
+			name = record.find("a", attrs={'class': "name-link"}).text.strip()
+			pi = record.find_all("p")
+			age = pi[0].text.split("Age: ")[1]
+			addy = pi[1].text
+			print(f"\n{Fore.LIGHTBLUE_EX + Style.BRIGHT}[ Name ] --> {Fore.LIGHTRED_EX}{name}{Fore.RESET}")
+			print(f"{Fore.LIGHTBLUE_EX + Style.BRIGHT}[ Age ] --> {Fore.LIGHTRED_EX}{age}{Fore.RESET}")
+			print(f"{Fore.LIGHTBLUE_EX + Style.BRIGHT}[ Address ] --> {Fore.LIGHTRED_EX}{addy}{Fore.RESET}")
 	except AttributeError as e:
-		return print(f"{Fore.YELLOW + Style.BRIGHT}[ Error ] --> Could not fetch info from TruePeopleSearch - {Fore.RED}{e}{Fore.RESET}")
-	print(f"{Fore.BLUE + Style.BRIGHT}[ Records ] {record_count}{Fore.RESET}")
-	[print(f"{Fore.LIGHTBLUE_EX + Style.BRIGHT}[ Name ] --> {Fore.LIGHTRED_EX}{name}{Fore.RESET}") for name in names]
+		return print(f"{Fore.YELLOW + Style.BRIGHT}[ Error ] --> Could not fetch info from ZabaSearch - {Fore.RED}{e}{Fore.RESET}")
 
-def thats_them_search(number: int) -> None:
+def us_phone_book(number: int) -> None:
+	scraper = cloudscraper.create_scraper()
+	if len(number) >= 11:
+		number = str(number[len(number) - 10:])
 	number = str('-'.join(regex.match(str(number)).groups()))
-	resp = requests.get("https://thatsthem.com/phone/{0}".format(number)).text
+	resp = scraper.get("https://www.usphonebook.com/{0}".format(number)).text
 	soup = BeautifulSoup(resp, 'html.parser')
 	try:
-		record_count = soup.find("div", attrs={'class': "query"}).text
-		records = soup.find("div", attrs={'class': "records col-lg-8"}).find_all("div", attrs={'class': "record"})
-		names = []
-		for record in records:
-			names.append(record.find("div", attrs={'class': "name"}).get_text())
+		name = " ".join([elem.text.strip() for elem in soup.find("span", attrs={"itemprop": "name"}).find_all("strong")])
+		url = "https://www.usphonebook.com" + soup.find("a", attrs={"class": "ls_contacts-btn"}).attrs["href"].strip()
+		print(f"\n{Fore.BLUE + Style.BRIGHT}[ US Phone Book ]{Fore.RESET}")
+		print(f"\n{Fore.LIGHTBLUE_EX + Style.BRIGHT}[ Name ] --> {Fore.LIGHTRED_EX}{name}{Fore.RESET}")
+		print(f"{Fore.LIGHTBLUE_EX + Style.BRIGHT}[ Url ] --> {Fore.LIGHTRED_EX}{url}{Fore.RESET}")
 	except AttributeError as e:
-		return print(f"{Fore.YELLOW + Style.BRIGHT}[ Error ] --> Could not fetch info from ThatsThem - {Fore.RED}{e}{Fore.RESET}")
-	print(f"{Fore.BLUE + Style.BRIGHT}[ Records ] {record_count}{Fore.RESET}")
-	[print(f"{Fore.LIGHTBLUE_EX + Style.BRIGHT}[ Name ] --> {Fore.LIGHTRED_EX}{name}{Fore.RESET}") for name in names]
+		return print(f"{Fore.YELLOW + Style.BRIGHT}[ Error ] --> Could not fetch info from USPhoneBook - {Fore.RED}{e}{Fore.RESET}")
 
 def main() -> None:
 	banner("({0}) {1}-{2}".format(*regex.match(str(sys.argv[1])).groups()))
 	caller_id(sys.argv[1])
-	true_people_search(sys.argv[1])
-	thats_them_search(sys.argv[1])
+	zaba_search(sys.argv[1])
+	us_phone_book(sys.argv[1])
 
 if __name__ == "__main__":
 	if len(sys.argv) != 2:
