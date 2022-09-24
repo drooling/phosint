@@ -25,7 +25,10 @@ def caller_id(number: str) -> None:
 	if len(number) >= 11:
 		number = str(number[len(number) - 10:])
 	number = int('1' + ''.join(regex.match(str(number)).groups()))
-	resp = requests.post("https://api.calleridtest.com/freebie", json={"number": number}).json()
+	try:
+		resp = requests.post("https://api.calleridtest.com/freebie", json={"number": number}).json()
+	except:
+		return print(f"{Fore.YELLOW + Style.BRIGHT}[ Error ] --> Could not fetch caller info{Fore.RESET}")
 	if resp.get("status") == "success":
 		provider = resp.get("data").get("data").get("lrn").get("company")
 		city = resp.get("data").get("data").get("lrn").get("rc")
